@@ -14,9 +14,9 @@ More details are available in [the slides](https://hackmd.io/@TTW/ToC-2019-Proje
 ## Setup
 
 ### Prerequisites
-* Python 3.6
+* Python 3.8
 * Pipenv
-* Facebook Page and App
+* LINE messaging API
 * An HTTPS server
 
 #### Install Dependencies
