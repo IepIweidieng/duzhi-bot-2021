@@ -31,7 +31,7 @@ pipenv shell
 ```
 
 * pygraphviz (For visualizing finite state machines)
-    * [Setting up pygraphviz on Ubuntu](http://www.jianshu.com/p/a3da7ecc5303)
+    * [Setting up pygraphviz on Ubuntu](https://www.jianshu.com/p/a3da7ecc5303)
 	* [Note: Installation errors on macOS](https://github.com/pygraphviz/pygraphviz/issues/100)
 
 
