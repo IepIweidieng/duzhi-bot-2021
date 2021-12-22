@@ -66,7 +66,7 @@ python3 app.py
 
 #### b. Servo
 
-Alternatively, you can use [Servo](http://serveo.net/) to expose local servers to the internet.
+Alternatively, you can use [Servo](https://servo.org/) to expose local servers to the internet.
 
 ## Finite State Machine
 ![fsm](./img/show-fsm.png)
