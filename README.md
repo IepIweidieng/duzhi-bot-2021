@@ -1,8 +1,6 @@
 # ToC Project 2021
 
-[![Maintainability](https://api.codeclimate.com/v1/badges/dc7fa47fcd809b99d087/maintainability)](https://codeclimate.com/github/NCKU-CCS/TOC-Project-2020/maintainability)
-
-[![Known Vulnerabilities](https://snyk.io/test/github/NCKU-CCS/TOC-Project-2020/badge.svg)](https://snyk.io/test/github/NCKU-CCS/TOC-Project-2020)
+[![Maintainability](https://api.codeclimate.com/v1/badges/245df60d4d70b798553d/maintainability)](https://codeclimate.com/github/IepIweidieng/duzhi-bot-2021/maintainability)
 
 
 Template code for ToC Project 2021.
