@@ -2,6 +2,7 @@ import os
 import sys
 
 from flask import Flask, jsonify, request, abort, send_file
+from flask.typing import ResponseReturnValue
 from dotenv import load_dotenv
 from linebot import LineBotApi, WebhookParser
 from linebot.exceptions import InvalidSignatureError
@@ -31,7 +32,7 @@ parser = WebhookParser(channel_secret)
 
 
 @app.route("/callback", methods=["POST"])
-def callback():
+def callback() -> ResponseReturnValue:
     signature = request.headers["X-Line-Signature"]
     # get request body as text
     body = request.get_data(as_text=True)
@@ -54,7 +55,7 @@ def callback():
         print(f"\nFSM STATE: {machine.state}")
         print(f"REQUEST BODY: \n{body}")
 
-        def reply(msg):
+        def reply(msg: TocMachine.Msg_t) -> None:
             line_bot_api.reply_message(event.reply_token, msg)
 
         response = machine.advance(event, reply)
@@ -65,7 +66,7 @@ def callback():
 
 
 @app.route("/show-fsm", methods=["GET"])
-def show_fsm():
+def show_fsm() -> ResponseReturnValue:
     machine.get_graph().draw("fsm.png", prog="dot", format="png")
     return send_file("fsm.png", mimetype="image/png")
 
