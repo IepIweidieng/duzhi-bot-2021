@@ -8,6 +8,7 @@ click==8.0.3
 Flask==2.0.2
 frozenlist==1.2.0
 future==0.18.2
+gunicorn==20.1.0
 idna==3.3
 itsdangerous==2.0.1
 Jinja2==3.0.3
