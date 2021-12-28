@@ -6,11 +6,11 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-python-dotenv = "~=0.10.3"
-pygraphviz = "~=1.5"
-transitions = "~=0.6.9"
-line-bot-sdk = "~=1.14.0"
-Flask = "~=1.0.2"
+python-dotenv = "~=0.19"
+pygraphviz = "~=1.7"
+transitions = "~=0.8"
+line-bot-sdk = "~=2.0"
+Flask = "~=2.0"
 
 
 [requires]
