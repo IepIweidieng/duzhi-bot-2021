@@ -17,15 +17,16 @@ machine = TocMachine()
 app = Flask(__name__, static_url_path="")
 
 
-# get channel_secret and channel_access_token from your environment variable
-channel_secret = os.getenv("LINE_CHANNEL_SECRET", None)
-channel_access_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", None)
-if channel_secret is None:
-    print("Specify LINE_CHANNEL_SECRET as environment variable.")
-    sys.exit(1)
-if channel_access_token is None:
-    print("Specify LINE_CHANNEL_ACCESS_TOKEN as environment variable.")
-    sys.exit(1)
+# get required variables from your environment
+def _require_env(env: str) -> str:
+    res = os.getenv(env)
+    if res is None:
+        print(f"Specify {env} as environment variable.")
+        sys.exit(1)
+    return res
+
+channel_secret = _require_env("LINE_CHANNEL_SECRET")
+channel_access_token = _require_env("LINE_CHANNEL_ACCESS_TOKEN")
 
 line_bot_api = LineBotApi(channel_access_token)
 handler = WebhookHandler(channel_secret)
