@@ -8,7 +8,6 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
 from fsm import TocMachine
-from utils import send_text_message
 
 load_dotenv()
 
@@ -54,9 +53,13 @@ def callback():
             continue
         print(f"\nFSM STATE: {machine.state}")
         print(f"REQUEST BODY: \n{body}")
-        response = machine.advance(event)
-        if response == False:
-            send_text_message(event.reply_token, "Not Entering any State")
+
+        def reply(msg):
+            line_bot_api.reply_message(event.reply_token, msg)
+
+        response = machine.advance(event, reply)
+        if response is False:
+            reply(TextSendMessage(text="Not Entering any State"))
 
     return "OK"
 
