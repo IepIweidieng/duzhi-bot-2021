@@ -41,7 +41,7 @@ Otherwise, you might not be able to run your code.
 #### Run Locally
 You can either set up an HTTPS server or use `ngrok` as a proxy.
 
-#### a. Ngrok Installation
+#### Ngrok Installation
 * [Instructions](https://ngrok.com/download) (for macOS, Windows, and Linux)
 
 Alternatively, you can use Homebrew for installation (for macOS)
@@ -61,10 +61,6 @@ And then `ngrok` will display an HTTPS URL to use.
 ```sh
 python3 app.py
 ```
-
-#### b. Serveo
-
-Alternatively, you can use [Serveo](https://serveo.net/) to expose local servers to the internet.
 
 ## Finite State Machine
 ![fsm](./img/show-fsm.png)
