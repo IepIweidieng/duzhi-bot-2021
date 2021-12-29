@@ -62,9 +62,9 @@ And then `ngrok` will display an HTTPS URL to use.
 python3 app.py
 ```
 
-#### b. Servo
+#### b. Serveo
 
-Alternatively, you can use [Servo](https://servo.org/) to expose local servers to the internet.
+Alternatively, you can use [Serveo](https://serveo.net/) to expose local servers to the internet.
 
 ## Finite State Machine
 ![fsm](./img/show-fsm.png)
