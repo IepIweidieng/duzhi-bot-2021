@@ -33,8 +33,7 @@ class TocMachine(GraphMachine):
     }
 
     def __init__(self, logger: Logger, **machine_configs) -> None:
-        self.machine = GraphMachine(
-            model=self, **{**TocMachine.configs, **machine_configs})
+        super().__init__(**{**TocMachine.configs, **machine_configs})
         self.logger = logger
 
     def is_going_to_state1(self, event: lm.Event, reply: Reply_t) -> bool:
