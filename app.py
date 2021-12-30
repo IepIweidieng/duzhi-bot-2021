@@ -12,16 +12,16 @@ from fsm import TocMachine
 
 load_dotenv()
 
-machine = TocMachine()
-
 app = Flask(__name__, static_url_path="")
+
+machine = TocMachine(app.logger)
 
 
 # get required variables from your environment
 def _require_env(env: str) -> str:
     res = os.getenv(env)
     if res is None:
-        print(f"Specify {env} as environment variable.")
+        app.logger.critical(f"Specify {env} as environment variable.")
         sys.exit(1)
     return res
 
@@ -41,13 +41,9 @@ def callback() -> ResponseReturnValue:
 
     # handle webhook body
     try:
-        print(f"REQUEST BODY: \n{body}")
         handler.handle(body, signature)
     except LineBotApiError as e:
-        print(f"Got exception from LINE Messaging API: {e.message}\n")
-        for m in e.error.details:
-            print(f"  {m.property}: {m.message}")
-        print("\n")
+        app.logger.exception("Got exception from LINE Messaging API", exc_info=e)
     except InvalidSignatureError:
         abort(400)
 
@@ -56,7 +52,7 @@ def callback() -> ResponseReturnValue:
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_text_message(event: MessageEvent) -> None:
-    print(f"\nFSM STATE: {machine.state}")
+    app.logger.info(f"FSM state: {machine.state}")
 
     msgs = []
     def reply(msg: TocMachine.Msg_t) -> None:
