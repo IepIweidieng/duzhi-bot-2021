@@ -1,3 +1,5 @@
 graphviz
 libgraphviz-dev
 pkg-config
+python3-psycopg2
+libpq-dev

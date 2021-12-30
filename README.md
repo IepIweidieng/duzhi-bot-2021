@@ -20,6 +20,7 @@ More details are available in [the slides](https://hackmd.io/@TTW/ToC-2019-Proje
 * Python 3.8
 * Pipenv
 * ngrok
+* Heroku PostgreSQL
 
 ### Deployment Environment
 * Heroku
@@ -48,18 +49,58 @@ sudo apt install graphviz graphviz-dev
 Note: On macOS, if you still encounter installation errors, the following issue might help:
 https://github.com/pygraphviz/pygraphviz/issues/100
 
+#### psycopq2
+* Required for accessing the PostgreSQL database
+
+Likewisely, the package manager version should be used:
+```sh
+sudo apt install python3-psycopg2 libpq-dev
+```
+
 ### Set up the Secrets
 You should create a file `.env` to set up the environment variables.
 The file `.env.sample` serves as an example.
 
-`LINE_CHANNEL_SECRET` and `LINE_CHANNEL_ACCESS_TOKEN` **MUST** be set to their proper value.
+The following environment variables **MUST** be set to their proper value:
+* `LINE_CHANNEL_SECRET`&mdash;LINE messaging API channel secret
+* `LINE_CHANNEL_ACCESS_TOKEN`&mdash;LINE messaging API channel access token
+* `DATABASE_URL`&mdash;PostgreSQL database URL (explained below)
+    * *Note*: If Heroku PostgreSQL is used, `DATABASE_URL` should *not* be set in `.env`.
 Otherwise, you might not be able to run the app server.
+
+### Prepare the Database
+
+Make sure you have set up a PostgreSQL database.
+`DATABASE_URL` should be set to the URL to your database.
+
+You can use the one provided by Heroku PostgreSQL as explained in [Preparation&mdash;Create a Heroku Project](#preparationcreate-a-heroku-project).
+
+However, if you chose to use Heroku PostgreSQL,
+you should use the database URL as the follow instead since the URL *can* change
+(see [Deployment](#deployment) for details):
+```sh
+DATABASE_URL=$(heroku config:get DATABASE_URL -a {HEROKU_APP_NAME}) pipenv run python app.py
+```
+* Reference: https://devcenter.heroku.com/articles/connecting-to-heroku-postgres-databases-from-outside-of-heroku
+
+For simplicity, in the following instructions,
+such commands will be prepended with `DATABASE_URL={...}`, as in:
+```sh
+DATABASE_URL={...} pipenv run python app.py
+```
+
+To initialize the database:
+```sh
+DATABASE_URL={...} pipenv run python -c 'import app; app.db.create_all()'
+```
+If the database were not initialized,
+the database operations would fail and the app server would return 500.
 
 ### Test the App Server Locally
 To run the app with the Flask built-in WSGI server (Werkzeug) in debug mode,
 execute the following command in a new terminal window:
 ```sh
-pipenv run python app.py
+DATABASE_URL={...} pipenv run python app.py
 ```
 
 Now, you might want to set up an HTTPS proxy server
@@ -77,7 +118,7 @@ curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc |
     sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null &&
     echo "deb https://ngrok-agent.s3.amazonaws.com buster main" |
     sudo tee /etc/apt/sources.list.d/ngrok.list &&
-    sudo apt update && sudo apt install ngrok   
+    sudo apt update && sudo apt install ngrok
 ```
 * Reference: https://ngrok.com/download
 * The registration steps are not required.
@@ -117,7 +158,7 @@ This paragraph covers how to deploy this app server to Heroku by using the Herok
 
 For more details, please refer to https://devcenter.heroku.com/articles/git
 
-### Log in
+### Preparation&mdash;Log in
 
 Make sure that Heroku CLI is installed.
 
@@ -139,9 +180,7 @@ In case it fails to open the browser or you just prefer using the CLI:
 heroku login -i
 ```
 
-### Deploy
-
-Make sure that you have your git project set up already.
+### Preparation&mdash;Create a Heroku Project
 
 *Notes*:
 * Substitute `{HEROKU_APP_NAME}` with your real project name
@@ -159,17 +198,29 @@ Make sure that you have your git project set up already.
     ```sh
     heroku buildpacks:set heroku/python -a {HEROKU_APP_NAME}
     heroku buildpacks:add --index 1 heroku-community/apt -a {HEROKU_APP_NAME}
+    heroku addons:create heroku-postgresql:hobby-dev -a {HEROKU_APP_NAME}
     ```
 3. Set up the secrets:
     ```sh
     heroku config:set LINE_CHANNEL_SECRET={your_line_channel_secret} -a {HEROKU_APP_NAME}
     heroku config:set LINE_CHANNEL_ACCESS_TOKEN={your_line_channel_access_token} -a {HEROKU_APP_NAME}
     ```
-4. Add the Heroku git repository as a remote to your local git project:
+
+You can now check the `DATABASE_URL` environment variable set up by `heroku-postgresql`
+with the following command:
+```sh
+heroku config:get DATABASE_URL -a {HEROKU_APP_NAME}
+```
+
+### Deploy
+
+Make sure that you have your git project set up already.
+
+1. Add the Heroku git repository as a remote to your local git project:
     ```sh
     heroku git:remote -a {HEROKU_APP_NAME}
     ```
-5. Push your local git project to Heroku git:
+2. Push your local git project to Heroku git:
     ```sh
     git push heroku
     ```
