@@ -1,15 +1,15 @@
 import os
 import sys
 
-from flask import Flask, jsonify, request, abort, send_file
-from flask.typing import ResponseReturnValue
 from dotenv import load_dotenv
+from flask import Flask, abort, jsonify, request, send_file
+from flask.typing import ResponseReturnValue
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError, LineBotApiError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from linebot.models.sources import SourceUser
 
-from db import db, User
+from db import User, db
 from fsm import TocMachine
 
 load_dotenv()
@@ -24,6 +24,7 @@ def _require_env(env: str) -> str:
         app.logger.critical(f"Specify {env} as environment variable.")
         sys.exit(1)
     return res
+
 
 channel_secret = _require_env("LINE_CHANNEL_SECRET")
 channel_access_token = _require_env("LINE_CHANNEL_ACCESS_TOKEN")
@@ -52,7 +53,8 @@ def callback() -> ResponseReturnValue:
     try:
         handler.handle(body, signature)
     except LineBotApiError as e:
-        app.logger.exception("Got exception from LINE Messaging API", exc_info=e)
+        app.logger.exception(
+            "Got exception from LINE Messaging API", exc_info=e)
     except InvalidSignatureError:
         abort(400)
 
@@ -68,6 +70,7 @@ def handle_text_message(event: MessageEvent) -> None:
     machine = user.load_machine(app.logger)
 
     msgs = []
+
     def reply(msg: TocMachine.Msg_t) -> None:
         msgs.extend(msg if isinstance(msg, list) else (msg,))
 

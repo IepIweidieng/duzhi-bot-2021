@@ -1,8 +1,8 @@
 from logging import Logger
 from typing import Callable, List, Union
-from transitions.extensions import GraphMachine
 
 import linebot.models as lm
+from transitions.extensions import GraphMachine
 
 
 class TocMachine(GraphMachine):
@@ -24,7 +24,8 @@ class TocMachine(GraphMachine):
                 "dest": "state2",
                 "conditions": "is_going_to_state2",
             },
-            {"trigger": "go_back", "source": ["state1", "state2"], "dest": "user"},
+            {"trigger": "go_back", "source": ["state1", "state2"],
+                "dest": "user"},
         ],
         "initial": "user",
         "auto_transitions": False,
@@ -32,7 +33,8 @@ class TocMachine(GraphMachine):
     }
 
     def __init__(self, logger: Logger, **machine_configs) -> None:
-        self.machine = GraphMachine(model=self, **{**TocMachine.configs, **machine_configs})
+        self.machine = GraphMachine(
+            model=self, **{**TocMachine.configs, **machine_configs})
         self.logger = logger
 
     def is_going_to_state1(self, event: lm.Event, reply: Reply_t) -> bool:
