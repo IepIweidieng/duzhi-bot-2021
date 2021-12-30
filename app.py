@@ -55,12 +55,14 @@ def callback() -> ResponseReturnValue:
         print(f"\nFSM STATE: {machine.state}")
         print(f"REQUEST BODY: \n{body}")
 
+        msgs = []
         def reply(msg: TocMachine.Msg_t) -> None:
-            line_bot_api.reply_message(event.reply_token, msg)
+            msgs.extend(msg if isinstance(msg, list) else (msg,))
 
-        response = machine.advance(event, reply)
-        if response is False:
-            reply(TextSendMessage(text="Not Entering any State"))
+        if not machine.advance(event, reply):
+            msgs.append(TextSendMessage(text="Not Entering any State"))
+        if len(msgs):
+            line_bot_api.reply_message(event.reply_token, msgs[-5:])
 
     return "OK"
 
