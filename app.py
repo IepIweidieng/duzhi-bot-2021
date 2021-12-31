@@ -57,6 +57,8 @@ def callback() -> ResponseReturnValue:
             "Got exception from LINE Messaging API", exc_info=e)
     except InvalidSignatureError:
         abort(400)
+    except Exception as e:
+        app.logger.exception("Got exception from handler", exc_info=e)
 
     return "OK"
 
