@@ -1,3 +1,4 @@
+from inspect import cleandoc
 from logging import Logger
 from typing import Callable, List, Union
 
@@ -36,26 +37,17 @@ class TocMachine(GraphMachine):
         super().__init__(**{**TocMachine.configs, **machine_configs})
         self.logger = logger
 
-    def is_going_to_state1(self, event: lm.Event, reply: Reply_t) -> bool:
-        text = event.message.text
-        return text.lower() == "go to state1"
+    for k in [1, 2]:
+        exec(cleandoc(f"""
+        def is_going_to_state{k}(self, event: lm.Event, reply: Reply_t) -> bool:
+            text = event.message.text
+            return text.lower() == "go to state{k}"
 
-    def is_going_to_state2(self, event: lm.Event, reply: Reply_t) -> bool:
-        text = event.message.text
-        return text.lower() == "go to state2"
+        def on_enter_state{k}(self, event: lm.Event, reply: Reply_t) -> None:
+            self.logger.info("I'm entering state{k}")
+            reply(lm.TextSendMessage(text="Trigger state{k}"))
+            self.go_back()
 
-    def on_enter_state1(self, event: lm.Event, reply: Reply_t) -> None:
-        self.logger.info("I'm entering state1")
-        reply(lm.TextSendMessage(text="Trigger state1"))
-        self.go_back()
-
-    def on_exit_state1(self) -> None:
-        self.logger.info("Leaving state1")
-
-    def on_enter_state2(self, event: lm.Event, reply: Reply_t) -> None:
-        self.logger.info("I'm entering state2")
-        reply(lm.TextSendMessage(text="Trigger state2"))
-        self.go_back()
-
-    def on_exit_state2(self) -> None:
-        self.logger.info("Leaving state2")
+        def on_exit_state{k}(self) -> None:
+            self.logger.info("Leaving state{k}")
+        """))
