@@ -6,7 +6,7 @@ from flask import Flask, abort, jsonify, request, send_file
 from flask.typing import ResponseReturnValue
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError, LineBotApiError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.models import MessageEvent, TextMessage
 from linebot.models.sources import SourceUser
 
 from db import User, db
@@ -76,8 +76,7 @@ def handle_text_message(event: MessageEvent) -> None:
     def reply(msg: TocMachine.Msg_t) -> None:
         msgs.extend(msg if isinstance(msg, list) else (msg,))
 
-    if not machine.advance(event, reply):
-        msgs.append(TextSendMessage(text="Not Entering any State"))
+    machine.exec(event, reply)
     if len(msgs):
         line_bot_api.reply_message(event.reply_token, msgs[-5:])
 
