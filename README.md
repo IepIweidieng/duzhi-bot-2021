@@ -66,6 +66,7 @@ The following environment variables **MUST** be set to their proper value:
 * `LINE_CHANNEL_ACCESS_TOKEN`&mdash;LINE messaging API channel access token
 * `DATABASE_URL`&mdash;PostgreSQL database URL (explained below)
     * *Note*: If Heroku PostgreSQL is used, `DATABASE_URL` should *not* be set in `.env`.
+
 Otherwise, you might not be able to run the app server.
 
 ### Prepare the Database
@@ -81,6 +82,7 @@ you should use the database URL as the follow instead since the URL *can* change
 ```sh
 DATABASE_URL=$(heroku config:get DATABASE_URL -a {HEROKU_APP_NAME}) pipenv run python app.py
 ```
+
 * Reference: https://devcenter.heroku.com/articles/connecting-to-heroku-postgres-databases-from-outside-of-heroku
 
 For simplicity, in the following instructions,
@@ -93,6 +95,7 @@ To initialize the database:
 ```sh
 DATABASE_URL={...} pipenv run python -c 'import app; app.db.create_all()'
 ```
+
 If the database were not initialized,
 the database operations would fail and the app server would return 500.
 
@@ -127,6 +130,7 @@ To run `ngrok`, execute the following command in another new terminal window:
 ```sh
 ngrok http 8000
 ```
+
 An HTTPS URL to use will then be displayed.
 
 Note that the URL will be different each time `ngrok` is invoked.
@@ -166,6 +170,7 @@ To install Heroku CLI on Ubuntu 20.04 on WSL2:
 ```sh
 curl https://cli-assets.heroku.com/install.sh | sh
 ```
+
 * Reference: https://devcenter.heroku.com/articles/heroku-cli
 
 Make sure that you have a working Heroku account.
@@ -175,6 +180,7 @@ To log in with the CLI:
 ```sh
 heroku login
 ```
+
 In case it fails to open the browser or you just prefer using the CLI:
 ```sh
 heroku login -i
