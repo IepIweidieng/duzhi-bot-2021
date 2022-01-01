@@ -17,10 +17,10 @@ from typing import (Any, Callable, Dict, Iterator, List, NamedTuple, Optional,
                     OrderedDict, Tuple, Type, Union)
 
 from transitions.core import Machine
-from transitions.extensions import HierarchicalGraphMachine
 from transitions.extensions.nesting import NestedState
 
-from fsm_utils import add_resetters, ignore_transitions
+from fsm_utils import (HierarchicalGraphMachine,
+                       add_resetters, ignore_transitions)
 
 NestedState.separator = '__'
 

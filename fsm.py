@@ -3,9 +3,9 @@ from logging import Logger
 from typing import Callable, List, Union
 
 import linebot.models as lm
-from transitions.extensions import GraphMachine
 
 import parse
+from fsm_utils import GraphMachine
 
 
 class TocMachine(GraphMachine):

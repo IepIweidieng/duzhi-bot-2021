@@ -12,9 +12,17 @@
 
 from typing import Callable, Dict, List, Literal, Optional, Sequence
 
+from transitions.extensions import GraphMachine, HierarchicalGraphMachine
+from transitions.extensions.factory import HierarchicalGraphMachine
 from transitions.extensions.nesting import NestedState
 
 _sep = NestedState.separator = '__'
+
+# customize the graphic styling
+for attrs in ["hierarchical_machine_attributes", "machine_attributes"]:
+    getattr(GraphMachine, attrs)["rankdir"] = "LR"  # arranging left-to-right
+    getattr(GraphMachine, attrs)["nodesep"] = "0.32"  # default: 0.25
+    getattr(GraphMachine, attrs)["pad"] = "0.222,0.111"  # default: 0.0555
 
 Visit_t = Callable[[Optional[str], Optional[Dict], int], None]
 
