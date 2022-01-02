@@ -106,7 +106,7 @@ token_specs = OrderedDict[str, PatSpec](
     TStr=PatSpec(
         "*", re.compile(r'"((?:\\.|[^"\\])+)"(\w*)', re.DOTALL),
         _xform(), _repr),
-    TCmd=PatSpec("*", re.compile(r"/([\w$]+[?!]?)"), _xform(), _repr),
+    TCmd=PatSpec("*", re.compile(r"/([\w$]+[?!,]?)"), _xform(), _repr),
     TQuoted=PatSpec("*", re.compile(r"'(\S+)'?"), _xform(), _repr),
     TWord=PatSpec("*", re.compile(r"(\S+)"),
                   _xform(lambda x: (x.lower(),)), _repr),  # Case insensitive

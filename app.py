@@ -100,7 +100,11 @@ def handle_text_message(event: MessageEvent) -> None:
 def show_fsm() -> ResponseReturnValue:
     url = "fsm.png"
     path = _url_to_path(url)
-    TocMachine(app.logger).get_graph().draw(path, prog="dot", format="png")
+    graph = TocMachine(app.logger).get_graph()
+    for node in graph.iternodes():
+        if node.attr["label"] in []:
+
+    graph.draw(path, prog="dot", format="png")
     return send_file(path, mimetype="image/png")
 
 

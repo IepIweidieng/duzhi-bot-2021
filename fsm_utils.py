@@ -57,8 +57,8 @@ def ignore_transitions(config: Dict, ign: Sequence, dest: Optional[Literal["="]]
     visit_states(config, f)
 
 
-def add_resetters(config: Dict, names: Sequence, dest: str) -> None:
-    """ Add transitions to `config` for resetting. """
+def get_states(config: Dict) -> List[str]:
+    """ Return all states in `config`. """
     states: List[str] = []
     path: List[str] = []
     plen: List[int] = [0]
@@ -73,5 +73,13 @@ def add_resetters(config: Dict, names: Sequence, dest: str) -> None:
             states.append(_sep.join(path[:depth + 1]))
 
     visit_states(config, f)
+    return states
+
+
+def add_resetters(config: Dict, names: Sequence, dest: str, **kwargs) -> None:
+    """ Add transitions to `config` for resetting. """
+    states = get_states(config)
     trans: List = config.setdefault("transitions", [])
-    trans.extend([name, states, dest] for name in names)
+    trans.extend(
+        {"trigger": name, "source": states, "dest": dest, **kwargs}
+         for name in names)
