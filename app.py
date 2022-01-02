@@ -98,8 +98,10 @@ def handle_text_message(event: MessageEvent) -> None:
 
 @app.route("/show-fsm", methods=["GET"])
 def show_fsm() -> ResponseReturnValue:
-    TocMachine(app.logger).get_graph().draw("fsm.png", prog="dot", format="png")
-    return send_file("fsm.png", mimetype="image/png")
+    url = "fsm.png"
+    path = _url_to_path(url)
+    TocMachine(app.logger).get_graph().draw(path, prog="dot", format="png")
+    return send_file(path, mimetype="image/png")
 
 
 if __name__ == "__main__":
