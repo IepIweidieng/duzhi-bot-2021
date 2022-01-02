@@ -9,12 +9,24 @@ from linebot.exceptions import InvalidSignatureError, LineBotApiError
 from linebot.models import MessageEvent, TextMessage
 from linebot.models.sources import SourceUser
 
+import file
 from db import User, db
 from fsm import TocMachine
 
 load_dotenv()
 
 app = Flask(__name__, static_url_path="")
+
+
+def _url_to_path(url: str) -> str:
+    """ Return the path on the file system for the relative URL `url`. """
+    return os.path.join("static", url)
+
+
+tmp_url = "tmp"
+""" The relative URL for temporary contents. """
+tmp_dir = _url_to_path(tmp_url)
+""" The path on the file system for temporary file contents. """
 
 
 # get required variables from your environment
@@ -92,4 +104,5 @@ def show_fsm() -> ResponseReturnValue:
 
 if __name__ == "__main__":
     port = os.environ.get("PORT", 8000)
+    file.mkdir(tmp_dir)
     app.run(host="0.0.0.0", port=port, debug=True)
