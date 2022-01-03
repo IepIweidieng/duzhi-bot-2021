@@ -10,9 +10,12 @@
     Utilities for defining FSMs.
 """
 
+from contextlib import AbstractContextManager
+from types import TracebackType
 from typing import (Callable, Collection, Dict, List, Literal, Optional,
-                    Sequence, Union, cast)
+                    Protocol, Sequence, Type, Union, cast)
 
+from transitions import Machine
 from transitions.extensions import GraphMachine, HierarchicalGraphMachine
 from transitions.extensions.nesting import NestedState
 
@@ -45,7 +48,57 @@ Config_t = Dict[str, Union[List["State_t"], TransList_t, List[str], str]]
 Visit_t = Callable[[Optional[str], Optional[Config_t], int], None]
 
 
-# Functions
+# Context manager
+
+class MachineCtxMngable(Protocol):
+    _initial: Optional[str] = None
+
+
+def MachineCtxMnger(
+    machine: Machine,
+    model: Optional[MachineCtxMngable] = None,
+) -> Type[AbstractContextManager]:
+    """ Return a class whose instances, when used with `with` statement,
+        automatically attach to and detach from the given `Machine` `machine`
+        as a model
+        and become available as the `as` object.
+        The returned class to be used as a mixin.
+        If `model` is given, attach and detach `model` instead of the instance.
+    """
+    class Res(AbstractContextManager, MachineCtxMngable):
+        if model is not None:
+            def __get_model(self: "Res") -> MachineCtxMngable:
+                assert model is not None
+                return model
+        else:
+            def __get_model(self: "Res") -> MachineCtxMngable:
+                return self
+
+        def __enter__(self) -> MachineCtxMngable:
+            machine.add_model(self.__get_model(), self.__get_model()._initial)
+            return self.__get_model()
+
+        def __exit__(
+            self,
+            __exc_type: Optional[Type[BaseException]],
+            __exc_value: Optional[BaseException],
+            __traceback: Optional[TracebackType]
+        ) -> Optional[bool]:
+            machine.remove_model(self.__get_model())
+            return super().__exit__(__exc_type, __exc_value, __traceback)
+    return Res
+
+
+def machine_ctx_mnger(
+    machine: Machine,
+    model: MachineCtxMngable,
+) -> AbstractContextManager:
+    """ Return an instance which, when used with `with` statement,
+        automatically attach to and detach from the given `Machine` `machine`
+        as a model.
+    """
+    return MachineCtxMnger(machine, model)()
+
 
 def is_dummy_parent(state: State_t) -> bool:
     """ Return whether `state` is a dummy parent state

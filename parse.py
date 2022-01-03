@@ -16,10 +16,9 @@ from functools import partial
 from typing import (Any, Callable, Dict, Iterator, List, NamedTuple, Optional,
                     OrderedDict, Tuple, Type, Union)
 
-from transitions.core import Machine
 from transitions.extensions.nesting import NestedState
 
-from fsm_utils import (HierarchicalGraphMachine,
+from fsm_utils import (HierarchicalGraphMachine, MachineCtxMnger,
                        add_resetters, ignore_transitions)
 
 NestedState.separator = '__'
@@ -42,24 +41,6 @@ token_classes: Dict[str, Type[Token_t]] = {}
 for name, fields in _cmd_token_defs.items():
     cls = token_classes[name] = NamedTuple(name, fields)
     exec(f"""{name} = cls""")
-
-
-# Helper classes
-
-def _MachineCtxMnger(machine: Machine) -> Type:
-    """ Return a class whose instances, when used with `with` statement,
-        automatically attach to and detach from the given `Machine` `machine`
-        as a model.
-        The returned class can be used as a mixin.
-    """
-    class Res():
-        def __enter__(self):
-            machine.add_model(self)
-            return self
-
-        def __exit__(self, *exc):
-            machine.remove_model(self)
-    return Res
 
 
 # Lexer
@@ -136,7 +117,7 @@ add_resetters(_lex_machine_configs, ["reset"], "beg")
 _lex_machine = HierarchicalGraphMachine(**_lex_machine_configs)
 
 
-class _LexModel(_MachineCtxMnger(_lex_machine)):
+class _LexModel(MachineCtxMnger(_lex_machine)):
     """ A model class for lexing (tokenizing) text message. """
     state: Union[partial, Any]
     trigger: Union[partial, Any]
@@ -210,7 +191,7 @@ add_resetters(_parse_machine_configs, ["reset"], "s")
 _parse_machine = HierarchicalGraphMachine(**_parse_machine_configs)
 
 
-class _ParseModel(_MachineCtxMnger(_parse_machine)):
+class _ParseModel(MachineCtxMnger(_parse_machine)):
     """ A model class for parsing text message. """
     state: Union[partial, Any]
     trigger: Union[partial, Any]
