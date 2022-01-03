@@ -20,9 +20,11 @@ _sep = NestedState.separator = '__'
 
 # customize the graphic styling
 for attrs in ["hierarchical_machine_attributes", "machine_attributes"]:
-    getattr(GraphMachine, attrs)["rankdir"] = "LR"  # arranging left-to-right
-    getattr(GraphMachine, attrs)["nodesep"] = "0.32"  # default: 0.25
-    getattr(GraphMachine, attrs)["pad"] = "0.222,0.111"  # default: 0.0555
+    getattr(GraphMachine, attrs).update(
+        rankdir="LR",  # arranging left-to-right
+        nodesep="0.32",  # default: 0.25
+        pad="0.222,0.111",  # default: 0.0555
+    )
 
 Visit_t = Callable[[Optional[str], Optional[Dict], int], None]
 
