@@ -30,6 +30,15 @@ for attrs in ["hierarchical_machine_attributes", "machine_attributes"]:
         pad="0.222,0.111",  # default: 0.0555
     )
 
+# make the "white" objects in the generated graph semi-transparent
+style_attrs = cast(Dict[str, Dict[str, Dict[str, str]]],
+                   GraphMachine.style_attributes)
+for states in style_attrs.values():
+    for attrs in states.values():
+        for k, v in attrs.items():
+            if k == "fillcolor" and v == "white":
+                attrs[k] = "#ffffff3f"
+
 
 # Types
 
