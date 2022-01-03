@@ -33,6 +33,7 @@ _configs = {
     "show_conditions": True,
 }
 toc_initial = _configs["initial"]
+toc_state_invalid = toc_initial
 toc_machine = GraphMachine(model=None, **_configs)
 
 
@@ -44,6 +45,11 @@ class TocModel(MachineCtxMngable):
     trigger: Union[partial, Any]
 
     def __init__(self, initial: Optional[str] = None) -> None:
+        if initial is not None:  # Ensure `initial` is valid
+            try:
+                toc_machine.get_state(initial)
+            except ValueError:
+                initial = toc_state_invalid
         self._initial = initial
 
     for k in [1, 2]:
