@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import load_only
 from sqlalchemy.orm.exc import NoResultFound, ObjectDeletedError
 
-from fsm import TocModel, toc_initial
+from fsm import WorldModel, world_initial
 
 db = SQLAlchemy()
 
@@ -57,14 +57,14 @@ class User():
         # new user; add user (may fail due to race conditions; just raise)
         with db.session.begin_nested():
             res = cls(
-                _User(user_id=user_id, state=toc_initial))
+                _User(user_id=user_id, state=world_initial))
             db.session.add(res._model)
             return res
 
-    def load_machine_model(self) -> TocModel:
-        return TocModel(initial=self.state)
+    def load_machine_model(self) -> WorldModel:
+        return WorldModel(initial=self.state)
 
-    def save_machine_model(self, model: TocModel) -> None:
+    def save_machine_model(self, model: WorldModel) -> None:
         try:
             # verify
             self._model = (

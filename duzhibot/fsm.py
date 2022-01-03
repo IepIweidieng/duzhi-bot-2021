@@ -60,12 +60,12 @@ _configs = {
     "show_conditions": True,
     "send_event": True,
 }
-toc_initial = _configs["initial"]
-toc_state_invalid = toc_initial
-toc_machine = GraphMachine(model=None, **_configs)
+world_initial = _configs["initial"]
+world_state_invalid = world_initial
+world_machine = GraphMachine(model=None, **_configs)
 
 
-class TocModel(MachineCtxMngable):
+class WorldModel(MachineCtxMngable):
     Msg_t = Union[lm.SendMessage, List[lm.SendMessage]]
     Reply_t = Callable[[Msg_t], None]
 
@@ -75,16 +75,16 @@ class TocModel(MachineCtxMngable):
     def __init__(self, initial: Optional[str] = None) -> None:
         if initial is not None:  # Ensure `initial` is valid
             try:
-                toc_machine.get_state(initial)
+                world_machine.get_state(initial)
             except ValueError:
-                initial = toc_state_invalid
+                initial = world_state_invalid
         self._initial = initial
 
     def exec(self, event: lm.Event, reply: Reply_t) -> bool:
         """ Parse `event` and try to trigger `self` with the parsing result.
             Return whether the parsed command is valid and available.
         """
-        triggers = toc_machine.get_triggers(self.state)
+        triggers = world_machine.get_triggers(self.state)
         cmd, args, kwargs = parse.parse(event.message.text)
         if cmd in triggers:
             if self.trigger(cmd, *args, **kwargs, event=event, reply=reply):

@@ -17,7 +17,7 @@ from linebot.models.sources import SourceUser
 import file
 import parse
 from db import User, db
-from fsm import TocModel, toc_machine
+from fsm import WorldModel, world_machine
 from fsm_utils import MachineCtxMngable, machine_ctx_mnger
 
 load_dotenv()
@@ -102,14 +102,14 @@ def handle_text_message(event: MessageEvent) -> None:
 
     msgs = []
 
-    def reply(msg: TocModel.Msg_t) -> None:
+    def reply(msg: WorldModel.Msg_t) -> None:
         msgs.extend(msg if isinstance(msg, list) else (msg,))
 
     user = User.from_user_id(event.source.user_id)
     app.logger.info(f"Loaded data for user {user.user_id}: {user.state}")
 
     model = user.load_machine_model()
-    with machine_ctx_mnger(toc_machine, model):
+    with machine_ctx_mnger(world_machine, model):
         model.exec(event, reply)
         user.save_machine_model(model)
         app.logger.info(f"Saved data for user {user.user_id}: {user.state}")
@@ -134,7 +134,8 @@ def _init() -> None:
 
     def tasks_async() -> None:
         """ Async tasks to run without blocking. """
-        draw_fsm("img/show-fsm.png", machine_ctx_mnger(toc_machine, TocModel()))
+        draw_fsm("img/show-fsm.png",
+                 machine_ctx_mnger(world_machine, WorldModel()))
         draw_fsm("img/show-fsm-lexer.png", parse._LexModel())
         draw_fsm("img/show-fsm-parser.png", parse._ParseModel())
 
