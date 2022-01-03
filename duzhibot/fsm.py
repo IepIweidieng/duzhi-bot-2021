@@ -1,11 +1,13 @@
 import logging
 from functools import partial
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union, cast
 
 import linebot.models as lm
 
 import parse
-from fsm_utils import EventData, GraphMachine, MachineCtxMngable
+import world
+from fsm_utils import (EventData, HierarchicalGraphMachine, MachineCtxMngable,
+                       get_state_names)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,43 +28,14 @@ def on_exit(state: str, ev: EventData) -> None:
 
 _configs = {
     "title": "Main Machine",
-    "states": [
-        "user",
-        {
-            "name": "state1",
-            "on_enter": partial(on_enter, "state1"),
-            "on_exit": partial(on_exit, "state1"),
-        },
-        {
-            "name": "state2",
-            "on_enter": partial(on_enter, "state2"),
-            "on_exit": partial(on_exit, "state2"),
-        },
-    ],
-    "transitions": [
-        {
-            "trigger": "advance",
-            "source": "user",
-            "dest": "state1",
-            "conditions": partial(is_going_to, "state1"),
-        },
-        {
-            "trigger": "advance",
-            "source": "user",
-            "dest": "state2",
-            "conditions": partial(is_going_to, "state2"),
-        },
-        {"trigger": "go_back", "source": ["state1", "state2"],
-            "dest": "user"},
-    ],
-    "initial": "user",
+    **world.world,
     "auto_transitions": False,
     "show_conditions": True,
     "send_event": True,
 }
 world_initial = _configs["initial"]
-world_state_invalid = world_initial
-world_machine = GraphMachine(model=None, **_configs)
+world_state_invalid = world.state_invalid
+world_machine = HierarchicalGraphMachine(model=None, **_configs)
 
 
 class WorldModel(MachineCtxMngable):
@@ -89,5 +62,6 @@ class WorldModel(MachineCtxMngable):
         if cmd in triggers:
             if self.trigger(cmd, *args, **kwargs, event=event, reply=reply):
                 return True
+
         reply(lm.TextSendMessage(text="Not Entering any State"))
         return False
