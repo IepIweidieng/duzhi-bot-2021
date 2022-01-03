@@ -14,7 +14,8 @@ from linebot.models.sources import SourceUser
 
 import file
 from db import User, db
-from fsm import TocMachine
+from fsm import TocModel, toc_machine
+from fsm_utils import machine_ctx_mnger
 
 load_dotenv()
 
@@ -89,15 +90,17 @@ def handle_text_message(event: MessageEvent) -> None:
 
     msgs = []
 
-    def reply(msg: TocMachine.Msg_t) -> None:
+    def reply(msg: TocModel.Msg_t) -> None:
         msgs.extend(msg if isinstance(msg, list) else (msg,))
 
     user = User.from_user_id(event.source.user_id)
     app.logger.info(f"Loaded data for user {user.user_id}: {user.state}")
-    machine = user.load_machine()
-    machine.exec(event, reply)
-    user.save_machine(machine)
-    app.logger.info(f"Saved data for user {user.user_id}: {user.state}")
+
+    model = user.load_machine_model()
+    with machine_ctx_mnger(toc_machine, model):
+        model.exec(event, reply)
+        user.save_machine_model(model)
+        app.logger.info(f"Saved data for user {user.user_id}: {user.state}")
 
     if len(msgs):
         line_bot_api.reply_message(event.reply_token, msgs[-5:])
@@ -107,7 +110,8 @@ def handle_text_message(event: MessageEvent) -> None:
 def show_fsm() -> ResponseReturnValue:
     url = "fsm.png"
     path = _url_to_path(url)
-    TocMachine(app.logger).get_graph().draw(path, prog="dot", format="png")
+    with machine_ctx_mnger(toc_machine, TocModel()) as model:
+        model.get_graph().draw(path, prog="dot", format="png")
     return send_file(path, mimetype="image/png")
 
 

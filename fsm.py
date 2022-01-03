@@ -1,44 +1,50 @@
 import logging
+from functools import partial
 from inspect import cleandoc
-from typing import Callable, List, Union
+from typing import Any, Callable, List, Optional, Union
 
 import linebot.models as lm
 
 import parse
-from fsm_utils import GraphMachine
+from fsm_utils import GraphMachine, MachineCtxMngable
 
 _LOGGER = logging.getLogger(__name__)
 
+_configs = {
+    "states": ["user", "state1", "state2"],
+    "transitions": [
+        {
+            "trigger": "advance",
+            "source": "user",
+            "dest": "state1",
+            "conditions": "is_going_to_state1",
+        },
+        {
+            "trigger": "advance",
+            "source": "user",
+            "dest": "state2",
+            "conditions": "is_going_to_state2",
+        },
+        {"trigger": "go_back", "source": ["state1", "state2"],
+            "dest": "user"},
+    ],
+    "initial": "user",
+    "auto_transitions": False,
+    "show_conditions": True,
+}
+toc_initial = _configs["initial"]
+toc_machine = GraphMachine(model=None, **_configs)
 
-class TocMachine(GraphMachine):
+
+class TocModel(MachineCtxMngable):
     Msg_t = Union[lm.SendMessage, List[lm.SendMessage]]
     Reply_t = Callable[[Msg_t], None]
 
-    configs = {
-        "states": ["user", "state1", "state2"],
-        "transitions": [
-            {
-                "trigger": "advance",
-                "source": "user",
-                "dest": "state1",
-                "conditions": "is_going_to_state1",
-            },
-            {
-                "trigger": "advance",
-                "source": "user",
-                "dest": "state2",
-                "conditions": "is_going_to_state2",
-            },
-            {"trigger": "go_back", "source": ["state1", "state2"],
-                "dest": "user"},
-        ],
-        "initial": "user",
-        "auto_transitions": False,
-        "show_conditions": True,
-    }
+    state: Union[partial, Any]
+    trigger: Union[partial, Any]
 
-    def __init__(self, **machine_configs) -> None:
-        super().__init__(**{**TocMachine.configs, **machine_configs})
+    def __init__(self, initial: Optional[str] = None) -> None:
+        self._initial = initial
 
     for k in [1, 2]:
         exec(cleandoc(f"""
@@ -58,7 +64,7 @@ class TocMachine(GraphMachine):
         """ Parse `event` and try to trigger `self` with the parsing result.
             Return whether the parsed command is valid and available.
         """
-        triggers = self.get_triggers(self.state)
+        triggers = toc_machine.get_triggers(self.state)
         cmd, args = parse.parse(event.message.text)
         if cmd in triggers:
             if self.trigger(cmd, args, event, reply):

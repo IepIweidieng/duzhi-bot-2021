@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import load_only
 from sqlalchemy.orm.exc import NoResultFound, ObjectDeletedError
 
-from fsm import TocMachine
+from fsm import TocModel, toc_initial
 
 db = SQLAlchemy()
 
@@ -57,21 +57,21 @@ class User():
         # new user; add user (may fail due to race conditions; just raise)
         with db.session.begin_nested():
             res = cls(
-                _User(user_id=user_id, state=TocMachine.configs["initial"]))
+                _User(user_id=user_id, state=toc_initial))
             db.session.add(res._model)
             return res
 
-    def load_machine(self) -> TocMachine:
-        return TocMachine(initial=self.state)
+    def load_machine_model(self) -> TocModel:
+        return TocModel(initial=self.state)
 
-    def save_machine(self, machine: TocMachine) -> None:
+    def save_machine_model(self, model: TocModel) -> None:
         try:
             # verify
             self._model = (
                 db.session.query(_User)
                 .filter_by(**self._before._asdict()).one())
             # update
-            self._model.state = machine.state
+            self._model.state = model.state
             self._before = _Data.from_model(self._model)
             db.session.commit()
         except NoResultFound:
