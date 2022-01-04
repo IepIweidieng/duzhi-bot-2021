@@ -7,10 +7,11 @@
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """ fsm_utils
-    Helper functions for defining FSMs.
+    Utilities for defining FSMs.
 """
 
-from typing import Callable, Dict, List, Literal, Optional, Sequence
+from typing import (Callable, Dict, List, Literal, Optional, Sequence, Union,
+                    cast)
 
 from transitions.extensions import GraphMachine, HierarchicalGraphMachine
 from transitions.extensions.nesting import NestedState
@@ -25,16 +26,51 @@ for attrs in ["hierarchical_machine_attributes", "machine_attributes"]:
         pad="0.222,0.111",  # default: 0.0555
     )
 
-Visit_t = Callable[[Optional[str], Optional[Dict], int], None]
+
+# Types
+
+State_t = Union[str, "Config_t"]
+TransCond_t = Union[str, Callable[..., Union[bool, None]]]
+TransFunc_t = Union[TransCond_t, List[TransCond_t], Literal["*", "=", None]]
+TransDictSpec_t = Dict[str, TransFunc_t]
+TransListSpec_t = List[Union[TransFunc_t, List[TransFunc_t]]]
+Trans_t = TransSpec_t = Union[TransDictSpec_t, TransListSpec_t]
+TransList_t = Union[
+    List[TransDictSpec_t],
+    List[TransListSpec_t],
+    List[Trans_t]
+]
+Config_t = Dict[str, Union[List["State_t"], TransList_t, List[str], str]]
+
+Visit_t = Callable[[Optional[str], Optional[Config_t], int], None]
 
 
-def visit_states(config: Dict, f: Visit_t, depth: int = 0) -> None:
+# Functions
+
+def get_children(config: Config_t) -> Optional[List[State_t]]:
+    """ Return all non-nested states in `config`. """
+    res = config.get("children", config.get("states"))
+    assert ((isinstance(res, list)
+             and all(not isinstance(v, list) for v in res))
+            or res is None)
+    return cast(Optional[List[State_t]], res)
+
+
+def get_transitions(config: Config_t) -> List[Trans_t]:
+    """ Return the non-nested transitions in `config`. """
+    res = config.setdefault("transitions", [])
+    assert isinstance(res, list)
+    return cast(List[Trans_t], res)
+
+
+def visit_states(config: Config_t, f: Visit_t, depth: int = 0) -> None:
     """ Visit all (nested) states in `config` and invoke `f` on them:
         f(state name, state object if it has any children).
     """
-    name: Optional[str] = config.get("name")
-    assert name is not None or depth == 0
-    sub: List = config.get("children", config.get("states"))
+    name = config.get("name")
+    assert (isinstance(name, (str, type(None)))
+            and (name is not None or depth == 0))
+    sub = get_children(config)
     if sub is None:
         f(name, None, depth)
         return
@@ -46,25 +82,24 @@ def visit_states(config: Dict, f: Visit_t, depth: int = 0) -> None:
             f(s, None, depth)
 
 
-def ignore_transitions(config: Dict, ign: Sequence, dest: Optional[Literal["="]]) -> None:
+def ignore_transitions(config: Config_t, ign: Sequence[str], dest: Literal["=", None]) -> None:
     """ Add transitions to `config` for ignoring triggers in `ign_list`.
         `dest` should be either `"="` (reflexive) or `None` (internal).
     """
-    def f(name: Optional[str], state: Optional[Dict], depth: int) -> None:
+    def f(name: Optional[str], state: Optional[Config_t], depth: int) -> None:
         if state is None:
             return
-        trans: List = state.setdefault("transitions", [])
-        trans.extend([token, "*", dest] for token in ign)
+        get_transitions(state).extend([token, "*", dest] for token in ign)
     visit_states(config, f)
 
 
-def add_resetters(config: Dict, names: Sequence, dest: str) -> None:
+def add_resetters(config: Config_t, names: Sequence[str], dest: str) -> None:
     """ Add transitions to `config` for resetting. """
     states: List[str] = []
     path: List[str] = []
     plen: List[int] = [0]
 
-    def f(name: Optional[str], state: Optional[Dict], depth: int) -> None:
+    def f(name: Optional[str], state: Optional[Config_t], depth: int) -> None:
         if name is not None:
             if depth >= plen[0]:
                 path.append(name)
@@ -74,5 +109,4 @@ def add_resetters(config: Dict, names: Sequence, dest: str) -> None:
             states.append(_sep.join(path[:depth + 1]))
 
     visit_states(config, f)
-    trans: List = config.setdefault("transitions", [])
-    trans.extend([name, states, dest] for name in names)
+    get_transitions(config).extend([name, states, dest] for name in names)
