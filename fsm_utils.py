@@ -13,7 +13,6 @@
 from typing import Callable, Dict, List, Literal, Optional, Sequence
 
 from transitions.extensions import GraphMachine, HierarchicalGraphMachine
-from transitions.extensions.factory import HierarchicalGraphMachine
 from transitions.extensions.nesting import NestedState
 
 _sep = NestedState.separator = '__'
