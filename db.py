@@ -1,6 +1,6 @@
 from contextlib import suppress
 from logging import Logger
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, Type, cast
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import load_only
@@ -11,7 +11,7 @@ from fsm import TocMachine
 db = SQLAlchemy()
 
 
-class _User(db.Model):
+class _User(cast(Type, db.Model)):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Text, unique=True, nullable=False)
     state = db.Column(db.Text, nullable=False)

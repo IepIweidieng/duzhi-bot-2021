@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import cast
 
 from dotenv import load_dotenv
 from flask import Flask, abort, jsonify, request, send_file
@@ -72,7 +73,7 @@ def callback() -> ResponseReturnValue:
     except Exception as e:
         app.logger.exception("Got exception from handler", exc_info=e)
 
-    return "OK"
+    return cast(ResponseReturnValue, "OK")
 
 
 @handler.add(MessageEvent, message=TextMessage)
