@@ -66,18 +66,22 @@ def get_transitions(config: Config_t) -> List[Trans_t]:
 def visit_states(config: Config_t, f: Visit_t, depth: int = 0) -> None:
     """ Visit all (nested) states in `config` and invoke `f` on them:
         f(state name, state object if it has any children).
+        `depth` is the distance from the root state.
     """
     name = config.get("name")
     assert (isinstance(name, (str, type(None)))
             and (name is not None or depth == 0))
     sub = get_children(config)
+    # visit self
     if sub is None:
         f(name, None, depth)
         return
     f(name, config, depth)
+    # visit children
+    depth += 1
     for s in sub:
         if isinstance(s, dict):
-            visit_states(s, f, depth + 1)
+            visit_states(s, f, depth)
         else:
             f(s, None, depth)
 
@@ -100,13 +104,14 @@ def add_resetters(config: Config_t, names: Sequence[str], dest: str) -> None:
     plen: List[int] = [0]
 
     def f(name: Optional[str], state: Optional[Config_t], depth: int) -> None:
-        if name is not None:
-            if depth >= plen[0]:
+        if depth > 0:
+            assert name is not None
+            if depth > plen[0]:
                 path.append(name)
                 plen[0] += 1
             else:
-                path[depth] = name
-            states.append(_sep.join(path[:depth + 1]))
+                path[depth - 1] = name
+            states.append(_sep.join(path[:depth]))
 
     visit_states(config, f)
     get_transitions(config).extend([name, states, dest] for name in names)
