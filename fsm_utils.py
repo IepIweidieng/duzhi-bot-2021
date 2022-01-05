@@ -47,9 +47,20 @@ Visit_t = Callable[[Optional[str], Optional[Config_t], int], None]
 
 # Functions
 
-def get_children(config: Config_t) -> List[State_t]:
-    """ Return all non-nested states in `config`. """
-    res = config.get("children", config.get("states", []))
+def get_name(state: State_t) -> Optional[str]:
+    """ Return the state name of `state` if found. """
+    if isinstance(state, str):
+        return state
+    res = state.get("name")
+    assert isinstance(res, (str, type(None)))
+    return res
+
+
+def get_children(state: State_t) -> List[State_t]:
+    """ Return all non-nested states in `state`. """
+    if isinstance(state, str):
+        return []
+    res = state.get("children", state.get("states", []))
     assert (isinstance(res, list)
             and all(not isinstance(v, list) for v in res))
     return cast(List[State_t], res)
@@ -62,27 +73,23 @@ def get_transitions(config: Config_t) -> List[Trans_t]:
     return cast(List[Trans_t], res)
 
 
-def visit_states(config: Config_t, f: Visit_t, depth: int = 0) -> None:
-    """ Visit all (nested) states in `config` and invoke `f` on them:
+def visit_states(state: State_t, f: Visit_t, depth: int = 0) -> None:
+    """ Visit all (nested) states in `state` and invoke `f` on them:
         f(state name, state object if it has any children).
         `depth` is the distance from the root state.
     """
-    name = config.get("name")
-    assert (isinstance(name, (str, type(None)))
-            and (name is not None or depth == 0))
-    sub = get_children(config)
+    name = get_name(state)
+    assert name is not None or depth == 0
+    sub = get_children(state)
     # visit self
     if len(sub) == 0:
         f(name, None, depth)
         return
-    f(name, config, depth)
+    state = cast(Config_t, state)  # A state definition with children
+    f(name, state, depth)
     # visit children
-    depth += 1
     for s in sub:
-        if isinstance(s, dict):
-            visit_states(s, f, depth)
-        else:
-            f(s, None, depth)
+        visit_states(s, f, depth + 1)
 
 
 def ignore_transitions(config: Config_t, ign: Sequence[str], dest: Literal["=", None]) -> None:
@@ -96,8 +103,8 @@ def ignore_transitions(config: Config_t, ign: Sequence[str], dest: Literal["=", 
     visit_states(config, f)
 
 
-def get_state_names(config: Config_t, base: str = None) -> List[str]:
-    """ Return the name of all (nested) states in `config`.
+def get_state_names(state: State_t, base: str = None) -> List[str]:
+    """ Return the name of all (nested) states in `state`.
         Prepend state names with `base` (with seperator `_sep`) if given.
     """
     states: List[str] = []
@@ -115,7 +122,7 @@ def get_state_names(config: Config_t, base: str = None) -> List[str]:
                 path[depth - 1] = name
             states.append(f"{base}{_sep.join(path[:depth])}")
 
-    visit_states(config, f)
+    visit_states(state, f)
     return states
 
 
