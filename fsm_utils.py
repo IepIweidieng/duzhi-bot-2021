@@ -140,7 +140,19 @@ def get_state_names(state: State_t, dummy: bool = False, base: str = None) -> Li
     return states
 
 
-def add_resetters(config: Config_t, names: Sequence[str], dest: str) -> None:
-    """ Add transitions to `config` for resetting. """
+def add_resetters(
+    config: Config_t,
+    names: Sequence[str],
+    dest: str,
+    **kwargs,
+) -> None:
+    """ Add transitions to `config` for resetting.
+        `**kwargs` will be passed into the transition definitions.
+    """
     states = get_state_names(config)
-    get_transitions(config).extend([name, states, dest] for name in names)
+    get_transitions(config).extend(
+        {"trigger": name,
+            "source": states,
+            "dest": dest,
+            **kwargs,
+         } for name in names)
