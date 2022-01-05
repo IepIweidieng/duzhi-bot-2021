@@ -96,11 +96,14 @@ def ignore_transitions(config: Config_t, ign: Sequence[str], dest: Literal["=", 
     visit_states(config, f)
 
 
-def add_resetters(config: Config_t, names: Sequence[str], dest: str) -> None:
-    """ Add transitions to `config` for resetting. """
+def get_state_names(config: Config_t, base: str = None) -> List[str]:
+    """ Return the name of all (nested) states in `config`.
+        Prepend state names with `base` (with seperator `_sep`) if given.
+    """
     states: List[str] = []
     path: List[str] = []
     plen: List[int] = [0]
+    base = f"{base}{_sep}" if base is not None else ""
 
     def f(name: Optional[str], state: Optional[Config_t], depth: int) -> None:
         if depth > 0:
@@ -110,7 +113,13 @@ def add_resetters(config: Config_t, names: Sequence[str], dest: str) -> None:
                 plen[0] += 1
             else:
                 path[depth - 1] = name
-            states.append(_sep.join(path[:depth]))
+            states.append(f"{base}{_sep.join(path[:depth])}")
 
     visit_states(config, f)
+    return states
+
+
+def add_resetters(config: Config_t, names: Sequence[str], dest: str) -> None:
+    """ Add transitions to `config` for resetting. """
+    states = get_state_names(config)
     get_transitions(config).extend([name, states, dest] for name in names)
