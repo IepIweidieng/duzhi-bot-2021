@@ -47,13 +47,12 @@ Visit_t = Callable[[Optional[str], Optional[Config_t], int], None]
 
 # Functions
 
-def get_children(config: Config_t) -> Optional[List[State_t]]:
+def get_children(config: Config_t) -> List[State_t]:
     """ Return all non-nested states in `config`. """
-    res = config.get("children", config.get("states"))
-    assert ((isinstance(res, list)
-             and all(not isinstance(v, list) for v in res))
-            or res is None)
-    return cast(Optional[List[State_t]], res)
+    res = config.get("children", config.get("states", []))
+    assert (isinstance(res, list)
+            and all(not isinstance(v, list) for v in res))
+    return cast(List[State_t], res)
 
 
 def get_transitions(config: Config_t) -> List[Trans_t]:
@@ -73,7 +72,7 @@ def visit_states(config: Config_t, f: Visit_t, depth: int = 0) -> None:
             and (name is not None or depth == 0))
     sub = get_children(config)
     # visit self
-    if sub is None:
+    if len(sub) == 0:
         f(name, None, depth)
         return
     f(name, config, depth)
