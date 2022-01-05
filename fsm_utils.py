@@ -47,6 +47,13 @@ Visit_t = Callable[[Optional[str], Optional[Config_t], int], None]
 
 # Functions
 
+def is_dummy_parent(state: State_t) -> bool:
+    """ Return whether `state` is a dummy parent state
+        (i.e., an state with children but without an initial state).
+    """
+    return not isinstance(state, str) and bool(state.get("initial"))
+
+
 def get_name(state: State_t) -> Optional[str]:
     """ Return the state name of `state` if found. """
     if isinstance(state, str):
@@ -99,12 +106,18 @@ def ignore_transitions(config: Config_t, ign: Sequence[str], dest: Literal["=", 
     def f(name: Optional[str], state: Optional[Config_t], depth: int) -> None:
         if state is None:
             return
-        get_transitions(state).extend([token, "*", dest] for token in ign)
+        get_transitions(state).extend([
+            token,
+            [k for k, v in ((get_name(v), v) for v in get_children(state))
+                if k is not None and not is_dummy_parent(v)],
+            dest,
+        ] for token in ign)
     visit_states(config, f)
 
 
-def get_state_names(state: State_t, base: str = None) -> List[str]:
+def get_state_names(state: State_t, dummy: bool = False, base: str = None) -> List[str]:
     """ Return the name of all (nested) states in `state`.
+        Skip dummy parent states unless `dummy` is `True`.
         Prepend state names with `base` (with seperator `_sep`) if given.
     """
     states: List[str] = []
@@ -120,7 +133,8 @@ def get_state_names(state: State_t, base: str = None) -> List[str]:
                 plen[0] += 1
             else:
                 path[depth - 1] = name
-            states.append(f"{base}{_sep.join(path[:depth])}")
+            if state is None or dummy or not is_dummy_parent(state):
+                states.append(f"{base}{_sep.join(path[:depth])}")
 
     visit_states(state, f)
     return states
