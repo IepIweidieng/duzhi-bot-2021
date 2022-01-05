@@ -10,8 +10,8 @@
     Utilities for defining FSMs.
 """
 
-from typing import (Callable, Dict, List, Literal, Optional, Sequence, Union,
-                    cast)
+from typing import (Callable, Collection, Dict, List, Literal, Optional,
+                    Sequence, Union, cast)
 
 from transitions.extensions import GraphMachine, HierarchicalGraphMachine
 from transitions.extensions.nesting import NestedState
@@ -144,15 +144,17 @@ def add_resetters(
     config: Config_t,
     names: Sequence[str],
     dest: str,
+    excl: Collection[str] = (),
     **kwargs,
 ) -> None:
     """ Add transitions to `config` for resetting.
+        States in `excl` will be excluded from the transitions.
         `**kwargs` will be passed into the transition definitions.
     """
     states = get_state_names(config)
     get_transitions(config).extend(
         {"trigger": name,
-            "source": states,
+            "source": [v for v in states if v not in excl],
             "dest": dest,
             **kwargs,
          } for name in names)
