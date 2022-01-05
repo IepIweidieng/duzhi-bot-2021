@@ -73,6 +73,13 @@ def get_children(state: State_t) -> List[State_t]:
     return cast(List[State_t], res)
 
 
+def get_child(state: State_t, name: str) -> Optional[State_t]:
+    """ Return a non-nested state named `name` in `config` if found. """
+    # return the first match
+    for res in (s for s in get_children(state) if get_name(s) == name):
+        return res
+
+
 def get_transitions(config: Config_t) -> List[Trans_t]:
     """ Return the non-nested transitions in `config`. """
     res = config.setdefault("transitions", [])
@@ -158,3 +165,40 @@ def add_resetters(
             "dest": dest,
             **kwargs,
          } for name in names)
+
+
+def resolve_initial(state: State_t, base: str = None, depth: int = 0) -> str:
+    """ Return the name of the non-dummy-parent initial state of `state`.
+        Prepend state names with `base` (with seperator `_sep`) if given.
+        `depth` is the distance from the root state.
+        All explicitly specified initial state names must be valid.
+    """
+    # build the full path to self
+    if base is None:
+        prefix = base = ""
+    else:
+        prefix = f"{base}{_sep}"
+    name = f"{prefix}{get_name(state)}" if depth > 0 else base
+
+    # check self
+    if not is_dummy_parent(state):  # A non-dummy state
+        return name
+    state = cast(Config_t, state)
+    init = state["initial"]
+    assert isinstance(init, str)
+
+    # check children
+    base = name
+    # Assume that a matching (nested) state will be found
+    st = get_child(state, init)
+    if st is not None:  # Found a pseudo-nested state
+        return resolve_initial(st, base, depth + 1)
+
+    # visit descendants
+    st = state
+    path = init.split(_sep)
+    base = _sep.join(v for v in (base, _sep.join(path[:-1])) if v != "")
+    for p in path:
+        st = get_child(st, p)
+        assert st is not None
+    return resolve_initial(st, base, depth + len(path))
