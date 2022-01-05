@@ -1,9 +1,11 @@
+import logging
 import os
 import sys
 from typing import cast
 
 from dotenv import load_dotenv
 from flask import Flask, abort, jsonify, request, send_file
+from flask.logging import default_handler
 from flask.typing import ResponseReturnValue
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError, LineBotApiError
@@ -17,6 +19,10 @@ from fsm import TocMachine
 load_dotenv()
 
 app = Flask(__name__, static_url_path="")
+
+_LOGGER_ROOT = logging.getLogger()
+_LOGGER_ROOT.addHandler(default_handler)
+_LOGGER_ROOT.setLevel(app.logger.getEffectiveLevel())
 
 
 def _url_to_path(url: str) -> str:
@@ -88,7 +94,7 @@ def handle_text_message(event: MessageEvent) -> None:
 
     user = User.from_user_id(event.source.user_id)
     app.logger.info(f"Loaded data for user {user.user_id}: {user.state}")
-    machine = user.load_machine(app.logger)
+    machine = user.load_machine()
     machine.exec(event, reply)
     user.save_machine(machine)
     app.logger.info(f"Saved data for user {user.user_id}: {user.state}")
@@ -108,4 +114,6 @@ def show_fsm() -> ResponseReturnValue:
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     file.mkdir(tmp_dir)
+    if _LOGGER_ROOT.getEffectiveLevel() > logging.INFO:
+        _LOGGER_ROOT.setLevel(logging.INFO)
     app.run(host="0.0.0.0", port=port, debug=True)

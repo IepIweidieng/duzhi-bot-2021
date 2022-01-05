@@ -1,5 +1,4 @@
 from contextlib import suppress
-from logging import Logger
 from typing import Any, NamedTuple, Type, cast
 
 from flask_sqlalchemy import SQLAlchemy
@@ -62,8 +61,8 @@ class User():
             db.session.add(res._model)
             return res
 
-    def load_machine(self, logger: Logger) -> TocMachine:
-        return TocMachine(logger, initial=self.state)
+    def load_machine(self) -> TocMachine:
+        return TocMachine(initial=self.state)
 
     def save_machine(self, machine: TocMachine) -> None:
         try:

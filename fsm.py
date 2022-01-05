@@ -1,11 +1,13 @@
+import logging
 from inspect import cleandoc
-from logging import Logger
 from typing import Callable, List, Union
 
 import linebot.models as lm
 
 import parse
 from fsm_utils import GraphMachine
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class TocMachine(GraphMachine):
@@ -35,9 +37,8 @@ class TocMachine(GraphMachine):
         "show_conditions": True,
     }
 
-    def __init__(self, logger: Logger, **machine_configs) -> None:
+    def __init__(self, **machine_configs) -> None:
         super().__init__(**{**TocMachine.configs, **machine_configs})
-        self.logger = logger
 
     for k in [1, 2]:
         exec(cleandoc(f"""
@@ -45,12 +46,12 @@ class TocMachine(GraphMachine):
             return args[0] == "state{k}"
 
         def on_enter_state{k}(self, args: List[str], event: lm.Event, reply: Reply_t) -> None:
-            self.logger.info("I'm entering state{k}")
+            _LOGGER.info("I'm entering state{k}")
             reply(lm.TextSendMessage(text="Trigger state{k}"))
             self.go_back()
 
         def on_exit_state{k}(self) -> None:
-            self.logger.info("Leaving state{k}")
+            _LOGGER.info("Leaving state{k}")
         """))
 
     def exec(self, event: lm.Event, reply: Reply_t) -> bool:
