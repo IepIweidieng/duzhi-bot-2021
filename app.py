@@ -1,4 +1,4 @@
-from toc.app import app, main
+from duzhibot.app import app, main
 
 __all__ = ["app"]
 
