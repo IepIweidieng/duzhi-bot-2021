@@ -25,6 +25,7 @@ def on_exit(state: str, ev: EventData) -> None:
 
 
 _configs = {
+    "title": "Main Machine",
     "states": [
         "user",
         {

@@ -98,6 +98,7 @@ for ttype, spec in token_specs.items():
     assert spec.pat.groups == len(getattr(token_classes[ttype], "_fields"))
 
 _lex_machine_configs = {
+    "title": "Lexer Machine",
     "states": ["beg", "mid"],
     "transitions": [
         ["TNewline", "*", "beg"],
@@ -168,6 +169,7 @@ def _get_kwarg(kw: str, ev: EventData) -> None:
 
 
 _parse_machine_configs = {
+    "title": "Parser Machine",
     "states": [
         {"name": "s", "children": [
             {"name": "go", "children": [
@@ -194,6 +196,7 @@ _parse_machine_configs = {
     "initial": "s",
     "auto_transitions": False,
     "show_conditions": True,
+    "show_state_attributes": True,
     "send_event": True,
 }
 ignore_transitions(

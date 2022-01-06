@@ -5,7 +5,7 @@
 
 Template code for ToC Project 2021.
 
-A LINE bot based on a finite state machine.
+A LINE bot based on finite state machines.
 
 More details are available in [the slides](https://hackmd.io/@TTW/ToC-2019-Project#) and [the FAQ](https://hackmd.io/s/B1Xw7E8kN)
 
@@ -142,8 +142,16 @@ You can now set the webhook URL to the HTTPS URL you acquired.
 To make LINE able to invoke the main webhook handler,
 append the URL with `/callback`.
 
-## Finite State Machine
+## Finite State Machines
+
+### Main Machine
 ![fsm](./img/show-fsm.png)
+
+### Parser Machine
+![fsm-parse](./img/show-fsm-parser.png)
+
+### Lexer Machine
+![fsm-lex](./img/show-fsm-lexer.png)
 
 ## Usage
 The initial state is set to `user`.
