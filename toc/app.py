@@ -1,6 +1,8 @@
 import logging
+import multiprocessing as mp
 import os
 import sys
+from contextlib import AbstractContextManager
 from typing import cast
 
 from dotenv import load_dotenv
@@ -13,9 +15,10 @@ from linebot.models import MessageEvent, TextMessage
 from linebot.models.sources import SourceUser
 
 import file
+import parse
 from db import User, db
 from fsm import TocModel, toc_machine
-from fsm_utils import machine_ctx_mnger
+from fsm_utils import MachineCtxMngable, machine_ctx_mnger
 
 load_dotenv()
 
@@ -117,16 +120,25 @@ def handle_text_message(event: MessageEvent) -> None:
 
 @app.route("/show-fsm", methods=["GET"])
 def show_fsm() -> ResponseReturnValue:
-    url = "fsm.png"
-    path = _url_to_path(url)
-    with machine_ctx_mnger(toc_machine, TocModel()) as model:
+    return send_file("img/show-fsm.png", mimetype="image/png")
+
+
+def draw_fsm(path: str, model_mnger: AbstractContextManager) -> None:
+    with model_mnger as model:
         model.get_graph().draw(path, prog="dot", format="png")
-    return send_file(path, mimetype="image/png")
 
 
 def _init() -> None:
     """ Codes to run when app.run() is invoked. """
     file.mkdir(tmp_dir)
+
+    def tasks_async() -> None:
+        """ Async tasks to run without blocking. """
+        draw_fsm("img/show-fsm.png", machine_ctx_mnger(toc_machine, TocModel()))
+        draw_fsm("img/show-fsm-lexer.png", parse._LexModel())
+        draw_fsm("img/show-fsm-parser.png", parse._ParseModel())
+
+    mp.Process(target=tasks_async, daemon=True).start()
 
 
 def main():
