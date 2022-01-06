@@ -14,11 +14,11 @@ import itertools
 import re
 from functools import partial
 from typing import (Any, Callable, Dict, Iterator, List, NamedTuple, Optional,
-                    OrderedDict, Tuple, Type, Union)
+                    OrderedDict, Tuple, Type, Union, cast)
 
-from fsm_utils import (HierarchicalGraphMachine, MachineCtxMnger,
-                       add_resetters, ignore_transitions)
-
+from fsm_utils import (EventData, HierarchicalGraphMachine, MachineCtxMnger,
+                       Tags, add_resetters, add_state_features,
+                       ignore_transitions)
 
 # Token definitions
 
@@ -150,13 +150,31 @@ def lex(text: str) -> Iterator[Tuple[int, Token_t]]:
 
 # Parser
 
+@add_state_features(Tags)  # For marking accepted states
+class _ParseMachine(HierarchicalGraphMachine):
+    pass
+
+
+def _set_cmd(cmd: str, ev: EventData) -> None:
+    cast(_ParseModel, ev.model).cmd = cmd
+
+
+def _get_arg(ev: EventData) -> None:
+    cast(_ParseModel, ev.model).args.append(ev.args[0])
+
 
 _parse_machine_configs = {
     "states": [
         {"name": "s", "children": [
             {"name": "go", "children": [
-                {"name": "to", "children": ["arg0"]},
-                "back",
+                {"name": "to", "children": [
+                    {"name": "arg0",
+                        "on_enter": [partial(_set_cmd, "advance"), _get_arg],
+                        "tags": ["accepted"]},
+                ]},
+                {"name": "back",
+                    "on_enter": [partial(_set_cmd, "go_back")],
+                    "tags": ["accepted"]},
             ], "transitions": [
                 [token, "to", "to__arg0"]
                 for token in ["TStr", "TWord", "TQuoted"]
@@ -168,32 +186,35 @@ _parse_machine_configs = {
     ],
     "transitions": [
         ["TWord_go", "s", "s__go"],
-        # Mark accepted states
-        *({"trigger": "accept", "source": src, "dest": None,
-            "before": lambda cb, cmd=cmd: cb(cmd)}
-            for src, cmd in [
-            ("s__go__to__arg0", "advance"),
-            ("s__go__back", "go_back"),
-        ]),
     ],
     "initial": "s",
     "auto_transitions": False,
     "show_conditions": True,
+    "send_event": True,
 }
 ignore_transitions(
     _parse_machine_configs, ["TNewline", "TIndent", "TSpace"], "=")
-add_resetters(_parse_machine_configs, ["reset"], "s")
+add_resetters(_parse_machine_configs, ["reset"], "s", after="__init__")
 
-_parse_machine = HierarchicalGraphMachine(**_parse_machine_configs)
+
+_parse_machine = _ParseMachine(**_parse_machine_configs)
 
 
 class _ParseModel(MachineCtxMnger(_parse_machine)):
     """ A model class for parsing text message. """
     state: Union[partial, Any]
     trigger: Union[partial, Any]
-    accept: Callable[..., None]
+    is_accepted: Callable[..., None]
 
-    def step(self, token: Token_t) -> Tuple[bool, Any]:
+    cmd: Optional[str]
+    args: List[Any]
+
+    def __init__(self, ev: EventData = None) -> None:
+        super().__init__()
+        self.cmd = None
+        self.args = []
+
+    def step(self, token: Token_t) -> bool:
         """ Return (is expected here, its value if expected) for token `token`.
         """
         tname = type(token).__name__
@@ -203,9 +224,9 @@ class _ParseModel(MachineCtxMnger(_parse_machine)):
         avail_triggers = _parse_machine.get_triggers(self.state)
         for trigger in [f"{tname}_{tvalue}", tname][tvalue is None:]:
             if trigger in avail_triggers:
-                self.trigger(trigger)
-                return True, tvalue if trigger is tname else None
-        return False, None
+                self.trigger(trigger, tvalue)
+                return True
+        return False
 
 
 def parse(text: str) -> Tuple[Optional[str], List[Any]]:
@@ -213,22 +234,11 @@ def parse(text: str) -> Tuple[Optional[str], List[Any]]:
     """
     with _ParseModel() as model:
         # parse and collect arguments
-        args = []
         for _, t in lex(text):
-            succ, val = model.step(t)
-            if not succ:
-                return None, []
-            if val is not None:
-                args.append(val)
+            if not model.step(t):
+                break
+        if not _parse_machine.get_state(model.state).is_accepted:
+            return None, []
 
         # Get the corresponding command for the parsing result
-        if "accept" in _parse_machine.get_triggers(model.state):
-            pcmd: List[Optional[str]] = [None]
-
-            def get_cmd(cmd: str) -> None:
-                pcmd[0] = cmd
-
-            model.accept(get_cmd)
-            return pcmd[0], args
-
-        return None, []
+        return model.cmd, model.args

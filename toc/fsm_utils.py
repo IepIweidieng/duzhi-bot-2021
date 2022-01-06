@@ -18,6 +18,7 @@ from typing import (Callable, Collection, Dict, List, Literal, Optional,
 from transitions import EventData, Machine
 from transitions.extensions import GraphMachine, HierarchicalGraphMachine
 from transitions.extensions.nesting import NestedState
+from transitions.extensions.states import Tags, add_state_features
 
 _sep = NestedState.separator = '__'
 
