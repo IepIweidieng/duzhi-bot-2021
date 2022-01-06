@@ -19,7 +19,16 @@ from fsm_utils import machine_ctx_mnger
 
 load_dotenv()
 
-app = Flask(__name__, static_url_path="")
+
+class _App(Flask):
+    def run(self, *args, **kwargs) -> None:
+        if not self.debug or os.getenv('WERKZEUG_RUN_MAIN') == 'true':
+            with self.app_context():
+                _init()
+        return super().run(*args, **kwargs)
+
+
+app = _App(__name__, static_url_path="")
 
 _LOGGER_ROOT = logging.getLogger()
 _LOGGER_ROOT.addHandler(default_handler)
@@ -115,9 +124,13 @@ def show_fsm() -> ResponseReturnValue:
     return send_file(path, mimetype="image/png")
 
 
+def _init() -> None:
+    """ Codes to run when app.run() is invoked. """
+    file.mkdir(tmp_dir)
+
+
 def main():
     port = int(os.environ.get("PORT", 8000))
-    file.mkdir(tmp_dir)
     if _LOGGER_ROOT.getEffectiveLevel() > logging.INFO:
         _LOGGER_ROOT.setLevel(logging.INFO)
     app.run(host="0.0.0.0", port=port, debug=True)
