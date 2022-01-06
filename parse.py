@@ -16,12 +16,8 @@ from functools import partial
 from typing import (Any, Callable, Dict, Iterator, List, NamedTuple, Optional,
                     OrderedDict, Tuple, Type, Union)
 
-from transitions.extensions.nesting import NestedState
-
 from fsm_utils import (HierarchicalGraphMachine, MachineCtxMnger,
                        add_resetters, ignore_transitions)
-
-NestedState.separator = '__'
 
 
 # Token definitions
