@@ -15,7 +15,7 @@ from types import TracebackType
 from typing import (Callable, Collection, Dict, List, Literal, Optional,
                     Protocol, Sequence, Type, Union, cast)
 
-from transitions import Machine
+from transitions import EventData, Machine
 from transitions.extensions import GraphMachine, HierarchicalGraphMachine
 from transitions.extensions.nesting import NestedState
 
