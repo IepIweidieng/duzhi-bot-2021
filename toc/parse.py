@@ -109,7 +109,6 @@ _lex_machine_configs = {
     "auto_transitions": False,
     "show_conditions": True,
 }
-add_resetters(_lex_machine_configs, ["reset"], "beg")
 
 _lex_machine = HierarchicalGraphMachine(**_lex_machine_configs)
 
@@ -201,7 +200,6 @@ _parse_machine_configs = {
 }
 ignore_transitions(
     _parse_machine_configs, ["TNewline", "TIndent", "TSpace"], "=")
-add_resetters(_parse_machine_configs, ["reset"], "s", after="__init__")
 
 
 _parse_machine = _ParseMachine(**_parse_machine_configs)
