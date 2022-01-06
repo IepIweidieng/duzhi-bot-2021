@@ -84,9 +84,9 @@ class TocModel(MachineCtxMngable):
             Return whether the parsed command is valid and available.
         """
         triggers = toc_machine.get_triggers(self.state)
-        cmd, args = parse.parse(event.message.text)
+        cmd, args, kwargs = parse.parse(event.message.text)
         if cmd in triggers:
-            if self.trigger(cmd, *args, event=event, reply=reply):
+            if self.trigger(cmd, *args, **kwargs, event=event, reply=reply):
                 return True
         reply(lm.TextSendMessage(text="Not Entering any State"))
         return False

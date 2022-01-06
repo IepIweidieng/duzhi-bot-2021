@@ -163,6 +163,10 @@ def _get_arg(ev: EventData) -> None:
     cast(_ParseModel, ev.model).args.append(ev.args[0])
 
 
+def _get_kwarg(kw: str, ev: EventData) -> None:
+    cast(_ParseModel, ev.model).kwargs[kw] = ev.args[0]
+
+
 _parse_machine_configs = {
     "states": [
         {"name": "s", "children": [
@@ -208,11 +212,13 @@ class _ParseModel(MachineCtxMnger(_parse_machine)):
 
     cmd: Optional[str]
     args: List[Any]
+    kwargs: Dict[str, Any]
 
     def __init__(self, ev: EventData = None) -> None:
         super().__init__()
         self.cmd = None
         self.args = []
+        self.kwargs = {}
 
     def step(self, token: Token_t) -> bool:
         """ Return (is expected here, its value if expected) for token `token`.
@@ -229,7 +235,7 @@ class _ParseModel(MachineCtxMnger(_parse_machine)):
         return False
 
 
-def parse(text: str) -> Tuple[Optional[str], List[Any]]:
+def parse(text: str) -> Tuple[Optional[str], List[Any], Dict[str, Any]]:
     """ Return (parsed command if valid, parsed arguments) for `str` `text`.
     """
     with _ParseModel() as model:
@@ -238,7 +244,7 @@ def parse(text: str) -> Tuple[Optional[str], List[Any]]:
             if not model.step(t):
                 break
         if not _parse_machine.get_state(model.state).is_accepted:
-            return None, []
+            return None, [], {}
 
         # Get the corresponding command for the parsing result
-        return model.cmd, model.args
+        return model.cmd, model.args, model.kwargs
