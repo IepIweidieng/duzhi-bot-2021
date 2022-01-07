@@ -1,29 +1,45 @@
 import logging
 import multiprocessing as mp
 import os
+import shutil
 import sys
 from contextlib import AbstractContextManager
-from typing import cast
+from typing import Optional, cast
 
 from dotenv import load_dotenv
-from flask import Flask, abort, jsonify, request, send_file
+from flask import Blueprint, Flask, abort
+from flask import g as fg
+from flask import jsonify, request, send_file
 from flask.logging import default_handler
 from flask.typing import ResponseReturnValue
+from flask.wrappers import Response
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError, LineBotApiError
 from linebot.models import MessageEvent, TextMessage
 from linebot.models.sources import SourceUser
+from werkzeug.utils import redirect, send_from_directory
 
 import file
 import parse
 from db import User, db
 from fsm import WorldModel, world_machine
-from fsm_utils import MachineCtxMngable, machine_ctx_mnger
+from fsm_utils import machine_ctx_mnger
 
 load_dotenv()
 
 
-class _App(Flask):
+_LOGGER_ROOT = logging.getLogger()
+_LOGGER_ROOT.addHandler(default_handler)
+
+
+class App(Flask):
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs.setdefault("static_url_path", "")
+        super().__init__(*args, **kwargs)
+        _LOGGER_ROOT.setLevel(self.logger.getEffectiveLevel())
+        self.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+        init_db(self)
+
     def run(self, *args, **kwargs) -> None:
         if not self.debug or os.getenv('WERKZEUG_RUN_MAIN') == 'true':
             with self.app_context():
@@ -31,11 +47,7 @@ class _App(Flask):
         return super().run(*args, **kwargs)
 
 
-app = _App(__name__, static_url_path="")
-
-_LOGGER_ROOT = logging.getLogger()
-_LOGGER_ROOT.addHandler(default_handler)
-_LOGGER_ROOT.setLevel(app.logger.getEffectiveLevel())
+bp = Blueprint("bp", __name__)
 
 
 def _url_to_path(url: str) -> str:
@@ -53,7 +65,7 @@ tmp_dir = _url_to_path(tmp_url)
 def _require_env(env: str) -> str:
     res = os.getenv(env)
     if res is None:
-        app.logger.critical(f"Specify {env} as environment variable.")
+        _LOGGER_ROOT.critical(f"Specify {env} as environment variable.")
         sys.exit(1)
     return res
 
@@ -61,36 +73,39 @@ def _require_env(env: str) -> str:
 channel_secret = _require_env("LINE_CHANNEL_SECRET")
 channel_access_token = _require_env("LINE_CHANNEL_ACCESS_TOKEN")
 
-# connect to the database
-database_url = _require_env("DATABASE_URL")
-# Workaround for the URL scheme
-# See https://help.heroku.com/ZKNTJQSK/why-is-sqlalchemy-1-4-x-not-connecting-to-heroku-postgres
-if database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
-app.config["SQLALCHEMY_DATABASE_URI"] = database_url
-db.init_app(app)
+
+def init_db(app: Flask) -> None:
+    # connect to the database
+    database_url = _require_env("DATABASE_URL")
+    # Workaround for the URL scheme
+    # See https://help.heroku.com/ZKNTJQSK/why-is-sqlalchemy-1-4-x-not-connecting-to-heroku-postgres
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+    db.init_app(app)
+
 
 line_bot_api = LineBotApi(channel_access_token)
 handler = WebhookHandler(channel_secret)
 
 
-@app.route("/callback", methods=["POST"])
+@bp.route("/callback", methods=["POST"])
 def callback() -> ResponseReturnValue:
     signature = request.headers["X-Line-Signature"]
     # get request body as text
     body = request.get_data(as_text=True)
-    app.logger.info(f"Request body: {body}")
+    _LOGGER_ROOT.info(f"Request body: {body}")
 
     # handle webhook body
     try:
         handler.handle(body, signature)
     except LineBotApiError as e:
-        app.logger.exception(
+        _LOGGER_ROOT.exception(
             "Got exception from LINE Messaging API", exc_info=e)
     except InvalidSignatureError:
         abort(400)
     except Exception as e:
-        app.logger.exception("Got exception from handler", exc_info=e)
+        _LOGGER_ROOT.exception("Got exception from handler", exc_info=e)
 
     return cast(ResponseReturnValue, "OK")
 
@@ -106,19 +121,19 @@ def handle_text_message(event: MessageEvent) -> None:
         msgs.extend(msg if isinstance(msg, list) else (msg,))
 
     user = User.from_user_id(event.source.user_id)
-    app.logger.info(f"Loaded data for user {user.user_id}: {user.state}")
+    _LOGGER_ROOT.info(f"Loaded data for user {user.user_id}: {user.state}")
 
     model = user.load_machine_model()
     with machine_ctx_mnger(world_machine, model):
         model.exec(event, reply)
         user.save_machine_model(model)
-        app.logger.info(f"Saved data for user {user.user_id}: {user.state}")
+        _LOGGER_ROOT.info(f"Saved data for user {user.user_id}: {user.state}")
 
     if len(msgs):
         line_bot_api.reply_message(event.reply_token, msgs[-5:])
 
 
-@app.route("/show-fsm", methods=["GET"])
+@bp.route("/show-fsm", methods=["GET"])
 def show_fsm() -> ResponseReturnValue:
     return send_file("img/show-fsm.png", mimetype="image/png")
 
@@ -131,18 +146,41 @@ def draw_fsm(path: str, model_mnger: AbstractContextManager) -> None:
 def _init() -> None:
     """ Codes to run when app.run() is invoked. """
     file.mkdir(tmp_dir)
+    file.mkdir(_url_to_path("img"))
 
     def tasks_async() -> None:
         """ Async tasks to run without blocking. """
-        draw_fsm("img/show-fsm.png",
-                 machine_ctx_mnger(world_machine, WorldModel()))
-        draw_fsm("img/show-fsm-lexer.png", parse._LexModel())
-        draw_fsm("img/show-fsm-parser.png", parse._ParseModel())
+        # prepare the images for serving
+        shutil.copytree("img", _url_to_path("img"), dirs_exist_ok=True)
+        img = {
+            "main": "img/show-fsm.png",
+            "lexer": "img/show-fsm-lexer.png",
+            "parser": "img/show-fsm-parser.png",
+        }
+        # draw the FSM diagrams
+        draw_fsm(img["main"], machine_ctx_mnger(world_machine, WorldModel()))
+        draw_fsm(img["lexer"], parse._LexModel())
+        draw_fsm(img["parser"], parse._ParseModel())
+        for f in img.values():
+            shutil.copy2(f, _url_to_path("img"))
 
     mp.Process(target=tasks_async, daemon=True).start()
 
 
-def main():
+@bp.before_request
+def before_request() -> Optional[ResponseReturnValue]:
+    if not request.is_secure:
+        # For ngrok
+        fg.rqst_url = request.url.replace("http://", "https://", 1)
+        fg.rqst_root_url = (
+            request.root_url.replace('http://', 'https://', 1).rstrip('/'))
+
+
+@bp.route("/<path:path>")
+def send_static_content(path: str) -> ResponseReturnValue:
+    return send_from_directory("static", path, request.environ)
+
+def main(app: Flask) -> None:
     port = int(os.environ.get("PORT", 8000))
     if _LOGGER_ROOT.getEffectiveLevel() > logging.INFO:
         _LOGGER_ROOT.setLevel(logging.INFO)
@@ -150,4 +188,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(App(__name__, static_url_path=""))

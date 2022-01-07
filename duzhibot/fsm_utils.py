@@ -24,7 +24,8 @@ _sep = NestedState.separator = '__'
 
 # customize the graphic styling
 for attrs in ["hierarchical_machine_attributes", "machine_attributes"]:
-    getattr(GraphMachine, attrs).update(
+    config = getattr(GraphMachine, attrs)
+    config.update(
         rankdir="LR",  # arranging left-to-right
         nodesep="0.32",  # default: 0.25
         pad="0.222,0.111",  # default: 0.0555
@@ -38,7 +39,6 @@ for states in style_attrs.values():
         for k, v in attrs.items():
             if k == "fillcolor" and v == "white":
                 attrs[k] = "#ffffff3f"
-
 
 # Types
 

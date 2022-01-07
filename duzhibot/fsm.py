@@ -1,13 +1,13 @@
 import logging
 from functools import partial
-from typing import Any, Callable, List, Optional, Union, cast
+from typing import Any, Callable, List, Optional, Union
 
 import linebot.models as lm
+from flask import request, g as fg
 
 import parse
 import world
-from fsm_utils import (EventData, HierarchicalGraphMachine, MachineCtxMngable,
-                       get_state_names)
+from fsm_utils import EventData, HierarchicalGraphMachine, MachineCtxMngable
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,9 +59,31 @@ class WorldModel(MachineCtxMngable):
         """
         triggers = world_machine.get_triggers(self.state)
         cmd, args, kwargs = parse.parse(event.message.text)
-        if cmd in triggers:
-            if self.trigger(cmd, *args, **kwargs, event=event, reply=reply):
-                return True
+        res = (
+            cmd in triggers
+            and self.trigger(cmd, *args, **kwargs, event=event, reply=reply))
 
-        reply(lm.TextSendMessage(text="Not Entering any State"))
-        return False
+        # Allow only lambda transitions which appear alone for deterministic
+        resk = res
+        while resk:
+            triggers = world_machine.get_triggers(self.state)
+            if triggers.count(world.trig_lambda) != len(triggers):
+                break
+            resk = self.trigger(
+                world.trig_lambda, event=event, reply=reply)
+
+        # Fallback message
+        if not res:
+            _LOGGER.info(f"{fg.rqst_root_url}/img/huisha-v2.png")
+            reply([
+                lm.ImageSendMessage(
+                    original_content_url=f"{request.root_url}/img/huisha-v2.png",
+                ),
+                lm.TextSendMessage(
+                    text="無此命令……請用 `/help` 査看可用命令。",
+                    quick_reply=lm.QuickReply([lm.QuickReplyButton(
+                        action=lm.MessageAction(label="/help", text="/help"))],
+                    )),
+            ])
+
+        return res
