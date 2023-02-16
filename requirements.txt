@@ -28,5 +28,5 @@ SQLAlchemy==1.4.29
 toml==0.10.2
 transitions==0.8.10
 urllib3==1.26.7
-Werkzeug==2.0.2
+Werkzeug==2.2.3
 yarl==1.7.2
